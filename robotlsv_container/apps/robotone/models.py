@@ -40,5 +40,5 @@ class Robotmintor(models.Model):
     )
     status = models.CharField(choices=STATUS, default=1, max_length=50)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-
+    task_id = models.CharField(blank=True, max_length=250)
 
