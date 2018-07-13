@@ -80,7 +80,7 @@ def robot_news_eltiempo(robot_id, keywords, pagination):
 @app.task
 def save_to_excel(data):
     print("Excel task execute")
-    print("This is the data type that the chrod funct send {}".format(type(data)))
+    # print("This is the data type that the chrod funct send {}".format(type(data)))
 
     # test
     # file_data = open('media/data.py', "a")
@@ -88,16 +88,17 @@ def save_to_excel(data):
     # file_data.close()
 
     file_path = 'media/links.xlsx'
-    file_headers = ['News title', 'Link']
+    file_headers = ['News title', 'Link', 'News paper']
 
     workbook = xlsxwriter.Workbook(file_path)
     worksheet = workbook.add_worksheet()
     worksheet.write_row(0, 0, file_headers)
 
     row, col = 1, 0
-    for individual_news in data[0]:
-        worksheet.write_row(row, col, individual_news)
-        row += 1
+    for multiple_news in data:
+        for individual_news in multiple_news:
+            worksheet.write_row(row, col, individual_news)
+            row += 1
 
     workbook.close()
     print("file has been created in {}".format(file_path))
@@ -110,7 +111,6 @@ def send_email(file_path):
     print("email task started")
     subject = "your subcject"
     body = "your body"
-
     e = EmailMessage()
     e.subject = subject
     e.to = settings.EMAIL_RECIPIENTS_LIST
@@ -147,6 +147,10 @@ def task_failure_handler(sender, result, **kwargs):
     send_email_failed_task.delay(kwargs)
 
 @task_revoked.connect()
-def on_task_revoked(*args, **kwargs):
+def on_task_revoked(request,*args, **kwargs):
     print(str(kwargs))
+    id = kwargs['sender'].task_id
+    monitor = Robotmintor.objects.get(task_id=id)
+    monitor.status = "3"
+    monitor.save()
     print('task_revoked')
