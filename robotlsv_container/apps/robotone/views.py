@@ -1,5 +1,6 @@
 from sqlite3 import Date
 
+from celery.worker.control import revoke
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -12,6 +13,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
+from robotlsv.celery import app
 from .tasks import initrobot
 # Create your views here.
 from rest_framework.viewsets import ModelViewSet
@@ -45,16 +48,18 @@ class Robot_view(APIView):
             monitor = get_object_or_404(Robotmintor.objects.filter(id=data['id']))
             if monitor.user.id == self.request.user.id:
                 if data['method']==1:
-                    initrobot.delay(monitor.id, data['word'], data['page'])
                     if monitor.status == "2" or monitor.status == "3":
                         return Response({'description': 'This monitor have been initiated or have been finished'},
                                         status=status.HTTP_403_FORBIDDEN)
-                    initrobot.delay(data['id'], data['word'], data['page'])
+                    task = initrobot.delay(data['id'], data['word'], data['page'])
+                    monitor.task_id = task.task_id
+                    monitor.save()
                     return Response(serializer.data, status=status.HTTP_200_OK)
                 elif data['method']==2:
                     if monitor.status == "1" or monitor.status == "3":
                         return Response({'description': "This monitor can't be stopped"})
                     #Aca iria el revoke
+                    app.control.revoke(monitor.task_id, terminate=True)
                     return Response({'description': "This monitor is stopping"})
 
                 # If method 1 == Inicar and IF Monitor.stado == Iniciado => El monitor ya fue iniciado
