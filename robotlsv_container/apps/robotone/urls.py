@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
 from rest_framework.routers import SimpleRouter
-from .views import RobotModelViewSet, Robot_view, testjesus
+from .views import RobotModelViewSet, Robot_view
 
 router = SimpleRouter()
 
